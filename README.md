@@ -1,11 +1,11 @@
 <h1 align="center">Un sistema de tickets completísimo basado en mensajes de WhatsApp.</h1> 
 
 
-## Vamos instalar?
+## Vamos a instalar?
 
 ACTUALIZAMOS VPS
 ```bash
-sudo apt-update && sudo apt-upgrade
+sudo apt update && sudo apt upgrade
 ```
 
 DESCARGAR EL INSTALADOR E INICIAR LA PRIMERA INSTALACIÓN (UTILIZAR SÓLO PARA LA PRIMERA INSTALACIÓN):
