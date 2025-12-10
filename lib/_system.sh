@@ -107,27 +107,22 @@ EOF
     exit 1
   fi
 
-  # Ejecutar git clone con manejo de errores
+  # Ejecutar git clone permitiendo entrada interactiva para credenciales
   printf "${WHITE} 💻 Clonando repositorio...${GRAY_LIGHT}\n"
+  printf "${YELLOW} 💡 Si el repositorio es privado, se le pedirán sus credenciales de GitHub.${GRAY_LIGHT}\n\n"
   
-  # Capturar salida y código de error
-  output=$(sudo su - deploy <<EOF 2>&1
-  git clone ${link_git} /home/deploy/${instancia_add}/
-EOF
-  )
-  exit_code=$?
-  
-  if [ $exit_code -eq 0 ]; then
-    printf "${GREEN} ✅ Repositorio clonado con éxito!${GRAY_LIGHT}\n\n"
+  # Ejecutar git clone directamente, permitiendo entrada interactiva
+  # Usamos sudo -u para mantener la conexión con la terminal
+  if sudo -u deploy bash -c "cd /home/deploy && git clone ${link_git} ${instancia_add}/"; then
+    printf "\n${GREEN} ✅ Repositorio clonado con éxito!${GRAY_LIGHT}\n\n"
   else
-    printf "${RED} ❌ Error al clonar el repositorio!${GRAY_LIGHT}\n"
-    printf "${RED} Mensaje de error:${GRAY_LIGHT}\n"
-    echo "$output" | sed 's/^/   /'
-    printf "\n${YELLOW} 💡 Verifique que:${GRAY_LIGHT}\n"
-    printf "${YELLOW}    - El enlace del repositorio sea correcto${GRAY_LIGHT}\n"
-    printf "${YELLOW}    - Si el repositorio es privado, necesita usar token en la URL${GRAY_LIGHT}\n"
-    printf "${YELLOW}    - Formato correcto para privado: https://token@github.com/usuario/repo.git${GRAY_LIGHT}\n"
-    printf "${YELLOW}    - O use: https://usuario:token@github.com/usuario/repo.git${GRAY_LIGHT}\n"
+    exit_code=$?
+    printf "\n${RED} ❌ Error al clonar el repositorio!${GRAY_LIGHT}\n"
+    printf "${YELLOW} 💡 Si el repositorio es privado, asegúrese de ingresar correctamente:${GRAY_LIGHT}\n"
+    printf "${YELLOW}    - Usuario de GitHub${GRAY_LIGHT}\n"
+    printf "${YELLOW}    - Contraseña o token de acceso personal${GRAY_LIGHT}\n"
+    printf "${YELLOW} 💡 Alternativamente, puede incluir el token en la URL:${GRAY_LIGHT}\n"
+    printf "${YELLOW}    https://token@github.com/usuario/repo.git${GRAY_LIGHT}\n"
     exit 1
   fi
 
