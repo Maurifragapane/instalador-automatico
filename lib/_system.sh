@@ -14,30 +14,26 @@ system_create_user() {
 
   sleep 2
 
-  # Generar hash de contraseña
-  password_hash=$(openssl passwd -crypt ${mysql_root_password})
-
   # Verificar si el usuario ya existe
   if id "deploy" &>/dev/null; then
     printf "${YELLOW} ⚠️  El usuario 'deploy' ya existe. Verificando configuración...${GRAY_LIGHT}\n"
     
     # Verificar y asegurar que esté en el grupo sudo
-    output=$(sudo su - root <<EOF 2>&1
+    output=$(sudo bash -c "
     set -e
     if ! groups deploy | grep -q sudo; then
       usermod -aG sudo deploy
-      echo "Usuario añadido al grupo sudo"
+      echo 'Usuario añadido al grupo sudo'
     else
-      echo "Usuario ya está en el grupo sudo"
+      echo 'Usuario ya está en el grupo sudo'
     fi
     
     # Asegurar que el usuario tenga shell bash
     usermod -s /bin/bash deploy
     
-    # Actualizar la contraseña
-    echo "deploy:${mysql_root_password}" | chpasswd
-EOF
-    )
+    # Actualizar la contraseña usando chpasswd
+    echo 'deploy:${mysql_root_password}' | chpasswd
+    " 2>&1)
     
     exit_code=$?
     
@@ -52,12 +48,17 @@ EOF
     # Crear el usuario si no existe
     printf "${WHITE} 💻 Creando usuario 'deploy'...${GRAY_LIGHT}\n"
     
-    output=$(sudo su - root <<EOF 2>&1
+    # Crear usuario sin contraseña primero, luego establecerla
+    output=$(sudo bash -c "
     set -e
-    useradd -m -p ${password_hash} -s /bin/bash -G sudo deploy
-    echo "Usuario creado exitosamente"
-EOF
-    )
+    # Crear usuario sin contraseña
+    useradd -m -s /bin/bash -G sudo deploy
+    
+    # Establecer contraseña usando chpasswd
+    echo 'deploy:${mysql_root_password}' | chpasswd
+    
+    echo 'Usuario creado exitosamente'
+    " 2>&1)
     
     exit_code=$?
     
