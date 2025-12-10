@@ -371,44 +371,65 @@ system_node_install() {
 
   sleep 2
 
-  sudo su - root <<EOF
   # Instalar dependencias necesarias
-  apt-get update -y
-  apt-get install -y curl build-essential
+  printf "${WHITE} 💻 Instalando dependencias...${GRAY_LIGHT}\n"
+  sudo apt-get update -y
+  sudo apt-get install -y curl build-essential
   
-  # Instalar nvm (Node Version Manager) para root
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+  # Instalar nvm (Node Version Manager) para root de forma no interactiva
+  printf "${WHITE} 💻 Descargando e instalando nvm...${GRAY_LIGHT}\n"
+  sudo bash -c 'export NVM_DIR="/root/.nvm" && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | PROFILE=/dev/null bash'
   
-  # Cargar nvm en la sesión actual
-  export NVM_DIR="/root/.nvm"
-  [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
+  # Esperar a que se complete la instalación de nvm
+  sleep 2
   
   # Instalar Node.js 20.19.5 usando nvm
-  nvm install 20.19.5
-  nvm use 20.19.5
-  nvm alias default 20.19.5
+  printf "${WHITE} 💻 Instalando Node.js 20.19.5...${GRAY_LIGHT}\n"
+  sudo bash -c '
+    export NVM_DIR="/root/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm install 20.19.5
+    nvm use 20.19.5
+    nvm alias default 20.19.5
+  '
   
-  # Hacer que Node.js esté disponible globalmente para todos los usuarios
-  ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/local/bin/node
-  ln -sf /root/.nvm/versions/node/v20.19.5/bin/npm /usr/local/bin/npm
-  ln -sf /root/.nvm/versions/node/v20.19.5/bin/npx /usr/local/bin/npx
+  # Esperar a que se complete la instalación
+  sleep 3
   
-  # Actualizar npm a la última versión
-  npm install -g npm@latest
+  # Verificar que Node.js se instaló correctamente
+  if [ -d "/root/.nvm/versions/node/v20.19.5" ]; then
+    # Hacer que Node.js esté disponible globalmente para todos los usuarios
+    printf "${WHITE} 💻 Configurando enlaces simbólicos...${GRAY_LIGHT}\n"
+    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/local/bin/node
+    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npm /usr/local/bin/npm
+    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npx /usr/local/bin/npx
+    
+    # Actualizar npm a la última versión
+    printf "${WHITE} 💻 Actualizando npm...${GRAY_LIGHT}\n"
+    sudo bash -c '
+      export NVM_DIR="/root/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      npm install -g npm@latest
+    '
+    
+    printf "${GREEN} ✅ Node.js 20.19.5 instalado correctamente.${GRAY_LIGHT}\n\n"
+  else
+    printf "${RED} ❌ Error: Node.js no se instaló correctamente.${GRAY_LIGHT}\n"
+    exit 1
+  fi
   
   sleep 2
   
   # Instalar PostgreSQL
-  sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt \$(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-  apt-get update -y && apt-get -y install postgresql
+  printf "${WHITE} 💻 Instalando PostgreSQL...${GRAY_LIGHT}\n"
+  sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  sudo apt-get update -y && sudo apt-get -y install postgresql
   
   sleep 2
   
   # Configurar zona horaria
-  timedatectl set-timezone Europe/Madrid
-  
-EOF
+  sudo timedatectl set-timezone Europe/Madrid
 
   sleep 2
 }
