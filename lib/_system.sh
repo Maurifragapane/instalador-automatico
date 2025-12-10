@@ -374,12 +374,25 @@ system_node_install() {
   
   # Eliminar versiones anteriores de Node.js instaladas desde apt
   printf "${WHITE} 💻 Eliminando versiones anteriores de Node.js...${GRAY_LIGHT}\n"
-  sudo apt-get remove -y nodejs npm 2>/dev/null || true
-  sudo apt-get purge -y nodejs npm 2>/dev/null || true
+  
+  # Eliminar Node.js y npm instalados desde apt
+  sudo apt-get remove -y nodejs npm nodejs-doc 2>/dev/null || true
+  sudo apt-get purge -y nodejs npm nodejs-doc 2>/dev/null || true
+  
+  # Eliminar repositorio de NodeSource si existe (puede estar instalando Node.js 16)
+  sudo rm -f /etc/apt/sources.list.d/nodesource.list
+  sudo rm -f /etc/apt/sources.list.d/nodistro.list
   
   # Eliminar enlaces simbólicos antiguos si existen
   sudo rm -f /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx
   sudo rm -f /usr/bin/node /usr/bin/npm /usr/bin/npx
+  
+  # Eliminar directorios de Node.js antiguos si existen
+  sudo rm -rf /usr/lib/node_modules
+  sudo rm -rf /usr/share/nodejs
+  
+  # Actualizar lista de paquetes después de eliminar repositorios
+  sudo apt-get update -y
   
   # Instalar nvm (Node Version Manager) para root de forma no interactiva
   printf "${WHITE} 💻 Descargando e instalando nvm...${GRAY_LIGHT}\n"
