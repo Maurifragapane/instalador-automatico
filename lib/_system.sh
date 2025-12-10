@@ -416,6 +416,12 @@ system_node_install() {
   
   # Verificar que Node.js se instaló correctamente
   if [ -d "/root/.nvm/versions/node/v20.19.5" ]; then
+    # Asegurar permisos de ejecución en los binarios
+    printf "${WHITE} 💻 Configurando permisos...${GRAY_LIGHT}\n"
+    sudo chmod +x /root/.nvm/versions/node/v20.19.5/bin/*
+    sudo chmod 755 /root/.nvm/versions/node/v20.19.5/bin
+    sudo chmod 755 /root/.nvm/versions/node/v20.19.5
+    
     # Hacer que Node.js esté disponible globalmente para todos los usuarios
     printf "${WHITE} 💻 Configurando enlaces simbólicos...${GRAY_LIGHT}\n"
     sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/local/bin/node
@@ -426,6 +432,10 @@ system_node_install() {
     sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/bin/node
     sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npm /usr/bin/npm
     sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npx /usr/bin/npx
+    
+    # Asegurar permisos de ejecución en los enlaces simbólicos
+    sudo chmod +x /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx
+    sudo chmod +x /usr/bin/node /usr/bin/npm /usr/bin/npx
     
     # Verificar la versión instalada
     node_version=$(sudo /usr/local/bin/node --version)
@@ -440,6 +450,9 @@ system_node_install() {
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
       npm install -g npm@latest
     '
+    
+    # Asegurar permisos después de actualizar npm
+    sudo chmod +x /root/.nvm/versions/node/v20.19.5/bin/*
     
     # Verificar nuevamente después de actualizar npm
     npm_version=$(sudo /usr/local/bin/npm --version)
