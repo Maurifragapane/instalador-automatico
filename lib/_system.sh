@@ -391,76 +391,44 @@ system_node_install() {
   sudo rm -rf /usr/lib/node_modules
   sudo rm -rf /usr/share/nodejs
   
-  # Actualizar lista de paquetes después de eliminar repositorios
+  # Instalar Node.js 20 desde el repositorio de NodeSource
+  printf "${WHITE} 💻 Configurando repositorio de NodeSource para Node.js 20...${GRAY_LIGHT}\n"
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  
+  # Actualizar lista de paquetes
   sudo apt-get update -y
   
-  # Instalar nvm (Node Version Manager) para root de forma no interactiva
-  printf "${WHITE} 💻 Descargando e instalando nvm...${GRAY_LIGHT}\n"
-  sudo bash -c 'export NVM_DIR="/root/.nvm" && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | PROFILE=/dev/null bash'
+  # Instalar Node.js 20 (instalará la última versión de la serie 20.x)
+  printf "${WHITE} 💻 Instalando Node.js 20...${GRAY_LIGHT}\n"
+  sudo apt-get install -y nodejs
   
-  # Esperar a que se complete la instalación de nvm
-  sleep 3
+  # Verificar que Node.js se instaló
+  node_version=$(node --version)
+  npm_version=$(npm --version)
+  printf "${GREEN} ✅ Node.js ${node_version} instalado correctamente.${GRAY_LIGHT}\n"
+  printf "${GREEN} ✅ npm ${npm_version} instalado correctamente.${GRAY_LIGHT}\n"
   
-  # Instalar Node.js 20.19.5 usando nvm
-  printf "${WHITE} 💻 Instalando Node.js 20.19.5...${GRAY_LIGHT}\n"
-  sudo bash -c '
-    export NVM_DIR="/root/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    nvm install 20.19.5
-    nvm use 20.19.5
-    nvm alias default 20.19.5
-  '
+  # Instalar 'n' (gestor de versiones de Node.js) para cambiar a la versión específica 20.19.5
+  printf "${WHITE} 💻 Instalando 'n' para gestionar versiones de Node.js...${GRAY_LIGHT}\n"
+  sudo npm install -g n
   
-  # Esperar a que se complete la instalación
-  sleep 5
+  # Instalar Node.js 20.19.5 específicamente usando 'n'
+  printf "${WHITE} 💻 Instalando Node.js 20.19.5 específicamente...${GRAY_LIGHT}\n"
+  sudo n 20.19.5
   
-  # Verificar que Node.js se instaló correctamente
-  if [ -d "/root/.nvm/versions/node/v20.19.5" ]; then
-    # Asegurar permisos de ejecución en los binarios
-    printf "${WHITE} 💻 Configurando permisos...${GRAY_LIGHT}\n"
-    sudo chmod +x /root/.nvm/versions/node/v20.19.5/bin/*
-    sudo chmod 755 /root/.nvm/versions/node/v20.19.5/bin
-    sudo chmod 755 /root/.nvm/versions/node/v20.19.5
-    
-    # Hacer que Node.js esté disponible globalmente para todos los usuarios
-    printf "${WHITE} 💻 Configurando enlaces simbólicos...${GRAY_LIGHT}\n"
-    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/local/bin/node
-    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npm /usr/local/bin/npm
-    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npx /usr/local/bin/npx
-    
-    # También crear enlaces en /usr/bin para mayor compatibilidad
-    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/bin/node
-    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npm /usr/bin/npm
-    sudo ln -sf /root/.nvm/versions/node/v20.19.5/bin/npx /usr/bin/npx
-    
-    # Asegurar permisos de ejecución en los enlaces simbólicos
-    sudo chmod +x /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx
-    sudo chmod +x /usr/bin/node /usr/bin/npm /usr/bin/npx
-    
-    # Verificar la versión instalada
-    node_version=$(sudo /usr/local/bin/node --version)
-    npm_version=$(sudo /usr/local/bin/npm --version)
-    printf "${GREEN} ✅ Node.js ${node_version} instalado correctamente.${GRAY_LIGHT}\n"
-    printf "${GREEN} ✅ npm ${npm_version} instalado correctamente.${GRAY_LIGHT}\n"
-    
-    # Actualizar npm a la última versión
-    printf "${WHITE} 💻 Actualizando npm...${GRAY_LIGHT}\n"
-    sudo bash -c '
-      export NVM_DIR="/root/.nvm"
-      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-      npm install -g npm@latest
-    '
-    
-    # Asegurar permisos después de actualizar npm
-    sudo chmod +x /root/.nvm/versions/node/v20.19.5/bin/*
-    
-    # Verificar nuevamente después de actualizar npm
-    npm_version=$(sudo /usr/local/bin/npm --version)
-    printf "${GREEN} ✅ npm actualizado a versión ${npm_version}.${GRAY_LIGHT}\n\n"
-  else
-    printf "${RED} ❌ Error: Node.js no se instaló correctamente.${GRAY_LIGHT}\n"
-    exit 1
-  fi
+  # Verificar la versión instalada
+  node_version=$(node --version)
+  npm_version=$(npm --version)
+  printf "${GREEN} ✅ Node.js ${node_version} instalado correctamente.${GRAY_LIGHT}\n"
+  printf "${GREEN} ✅ npm ${npm_version} instalado correctamente.${GRAY_LIGHT}\n"
+  
+  # Actualizar npm a la última versión
+  printf "${WHITE} 💻 Actualizando npm...${GRAY_LIGHT}\n"
+  sudo npm install -g npm@latest
+  
+  # Verificar nuevamente después de actualizar npm
+  npm_version=$(npm --version)
+  printf "${GREEN} ✅ npm actualizado a versión ${npm_version}.${GRAY_LIGHT}\n\n"
   
   sleep 2
   
@@ -583,19 +551,7 @@ system_pm2_install() {
 
   sleep 2
 
-  # Encontrar npm
-  if [ -f "/usr/local/bin/npm" ]; then
-    npm_cmd="/usr/local/bin/npm"
-  elif [ -f "/usr/bin/npm" ]; then
-    npm_cmd="/usr/bin/npm"
-  else
-    npm_cmd="npm"
-  fi
-
-  sudo bash -c "
-    export PATH=\"/usr/local/bin:/usr/bin:\$PATH\"
-    ${npm_cmd} install -g pm2
-  "
+  sudo npm install -g pm2
 
   sleep 2
 }

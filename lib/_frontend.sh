@@ -14,16 +14,8 @@ frontend_node_dependencies() {
 
   sleep 2
 
-  # Verificar que npm esté disponible y encontrar su ruta
-  if [ -f "/root/.nvm/versions/node/v20.19.5/bin/npm" ]; then
-    npm_cmd="/root/.nvm/versions/node/v20.19.5/bin/npm"
-  elif [ -f "/usr/local/bin/npm" ] && [ -x "/usr/local/bin/npm" ]; then
-    npm_cmd="/usr/local/bin/npm"
-  elif [ -f "/usr/bin/npm" ] && [ -x "/usr/bin/npm" ]; then
-    npm_cmd="/usr/bin/npm"
-  elif command -v npm &> /dev/null; then
-    npm_cmd="npm"
-  else
+  # Verificar que npm esté disponible
+  if ! command -v npm &> /dev/null; then
     printf "${RED} ❌ npm no se encuentra instalado!${GRAY_LIGHT}\n"
     printf "${RED} Por favor, ejecute primero la instalación de Node.js.${GRAY_LIGHT}\n"
     exit 1
@@ -34,9 +26,8 @@ frontend_node_dependencies() {
   
   output=$(sudo -u deploy bash -c "
     set -e
-    export PATH=\"/usr/local/bin:/usr/bin:/root/.nvm/versions/node/v20.19.5/bin:\$PATH\"
     cd /home/deploy/${instancia_add}/frontend
-    ${npm_cmd} install
+    npm install
   " 2>&1)
   
   exit_code=$?
@@ -48,9 +39,8 @@ frontend_node_dependencies() {
     
     output=$(sudo -u deploy bash -c "
       set -e
-      export PATH=\"/usr/local/bin:/usr/bin:/root/.nvm/versions/node/v20.19.5/bin:\$PATH\"
       cd /home/deploy/${instancia_add}/frontend
-      ${npm_cmd} install --legacy-peer-deps
+      npm install --legacy-peer-deps
     " 2>&1)
     
     exit_code=$?
@@ -80,21 +70,9 @@ frontend_node_build() {
 
   sleep 2
 
-  # Encontrar npm
-  if [ -f "/root/.nvm/versions/node/v20.19.5/bin/npm" ]; then
-    npm_cmd="/root/.nvm/versions/node/v20.19.5/bin/npm"
-  elif [ -f "/usr/local/bin/npm" ] && [ -x "/usr/local/bin/npm" ]; then
-    npm_cmd="/usr/local/bin/npm"
-  elif [ -f "/usr/bin/npm" ] && [ -x "/usr/bin/npm" ]; then
-    npm_cmd="/usr/bin/npm"
-  else
-    npm_cmd="npm"
-  fi
-
   sudo -u deploy bash -c "
-    export PATH=\"/usr/local/bin:/usr/bin:/root/.nvm/versions/node/v20.19.5/bin:\$PATH\"
     cd /home/deploy/${instancia_add}/frontend
-    ${npm_cmd} run build
+    npm run build
   "
 
   sleep 2
