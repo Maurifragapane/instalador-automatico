@@ -99,13 +99,27 @@ backend_node_dependencies() {
 
   sleep 2
 
+  # Verificar que npm esté disponible y encontrar su ruta
+  if [ -f "/usr/local/bin/npm" ]; then
+    npm_cmd="/usr/local/bin/npm"
+  elif [ -f "/usr/bin/npm" ]; then
+    npm_cmd="/usr/bin/npm"
+  elif command -v npm &> /dev/null; then
+    npm_cmd="npm"
+  else
+    printf "${RED} ❌ npm no se encuentra instalado!${GRAY_LIGHT}\n"
+    printf "${RED} Por favor, ejecute primero la instalación de Node.js.${GRAY_LIGHT}\n"
+    exit 1
+  fi
+
   # Intentar primero con npm install normal
   printf "${WHITE} 💻 Intentando instalación estándar...${GRAY_LIGHT}\n"
   
   output=$(sudo su - deploy <<EOF 2>&1
   set -e
+  export PATH="/usr/local/bin:/usr/bin:\$PATH"
   cd /home/deploy/${instancia_add}/backend
-  npm install
+  ${npm_cmd} install
 EOF
   )
   
@@ -118,8 +132,9 @@ EOF
     
     output=$(sudo su - deploy <<EOF 2>&1
     set -e
+    export PATH="/usr/local/bin:/usr/bin:\$PATH"
     cd /home/deploy/${instancia_add}/backend
-    npm install --legacy-peer-deps
+    ${npm_cmd} install --legacy-peer-deps
 EOF
     )
     
@@ -150,9 +165,19 @@ backend_node_build() {
 
   sleep 2
 
+  # Encontrar npm
+  if [ -f "/usr/local/bin/npm" ]; then
+    npm_cmd="/usr/local/bin/npm"
+  elif [ -f "/usr/bin/npm" ]; then
+    npm_cmd="/usr/bin/npm"
+  else
+    npm_cmd="npm"
+  fi
+
   sudo su - deploy <<EOF
+  export PATH="/usr/local/bin:/usr/bin:\$PATH"
   cd /home/deploy/${instancia_add}/backend
-  npm run build
+  ${npm_cmd} run build
 EOF
 
   sleep 2
@@ -207,9 +232,19 @@ backend_db_migrate() {
 
   sleep 2
 
+  # Encontrar npx
+  if [ -f "/usr/local/bin/npx" ]; then
+    npx_cmd="/usr/local/bin/npx"
+  elif [ -f "/usr/bin/npx" ]; then
+    npx_cmd="/usr/bin/npx"
+  else
+    npx_cmd="npx"
+  fi
+
   sudo su - deploy <<EOF
+  export PATH="/usr/local/bin:/usr/bin:\$PATH"
   cd /home/deploy/${instancia_add}/backend
-  npx sequelize db:migrate
+  ${npx_cmd} sequelize db:migrate
 EOF
 
   sleep 2
@@ -227,9 +262,19 @@ backend_db_seed() {
 
   sleep 2
 
+  # Encontrar npx
+  if [ -f "/usr/local/bin/npx" ]; then
+    npx_cmd="/usr/local/bin/npx"
+  elif [ -f "/usr/bin/npx" ]; then
+    npx_cmd="/usr/bin/npx"
+  else
+    npx_cmd="npx"
+  fi
+
   sudo su - deploy <<EOF
+  export PATH="/usr/local/bin:/usr/bin:\$PATH"
   cd /home/deploy/${instancia_add}/backend
-  npx sequelize db:seed:all
+  ${npx_cmd} sequelize db:seed:all
 EOF
 
   sleep 2

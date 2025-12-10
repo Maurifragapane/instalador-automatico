@@ -557,10 +557,19 @@ system_pm2_install() {
 
   sleep 2
 
-  sudo su - root <<EOF
-  npm install -g pm2
+  # Encontrar npm
+  if [ -f "/usr/local/bin/npm" ]; then
+    npm_cmd="/usr/local/bin/npm"
+  elif [ -f "/usr/bin/npm" ]; then
+    npm_cmd="/usr/bin/npm"
+  else
+    npm_cmd="npm"
+  fi
 
-EOF
+  sudo bash -c "
+    export PATH=\"/usr/local/bin:/usr/bin:\$PATH\"
+    ${npm_cmd} install -g pm2
+  "
 
   sleep 2
 }
