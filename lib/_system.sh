@@ -91,10 +91,10 @@ system_git_clone() {
     printf "${RED} ⚠️  El directorio /home/deploy/${instancia_add} ya existe!${GRAY_LIGHT}\n"
     printf "${WHITE} 💻 ¿Desea eliminar y clonar nuevamente? (s/n):${GRAY_LIGHT}"
     read -p "> " respuesta
-    if [[ "$resposta" == "s" || "$resposta" == "S" ]]; then
-      sudo su - deploy <<EOF
-      rm -rf /home/deploy/${instancia_add}
-EOF
+    if [[ "$respuesta" == "s" || "$respuesta" == "S" ]]; then
+      printf "${WHITE} 💻 Eliminando directorio existente...${GRAY_LIGHT}\n"
+      sudo rm -rf /home/deploy/${instancia_add}
+      printf "${GREEN} ✅ Directorio eliminado.${GRAY_LIGHT}\n\n"
     else
       printf "${RED} ❌ Operación cancelada.${GRAY_LIGHT}\n"
       exit 1
