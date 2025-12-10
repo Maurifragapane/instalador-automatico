@@ -9,15 +9,46 @@
 #######################################
 frontend_node_dependencies() {
   print_banner
-  printf "${WHITE} 💻 Instalando dependências do frontend...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando dependencias del frontend...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
 
-  sudo su - deploy <<EOF
+  # Intentar primero con npm install normal
+  printf "${WHITE} 💻 Intentando instalación estándar...${GRAY_LIGHT}\n"
+  
+  output=$(sudo su - deploy <<EOF 2>&1
+  set -e
   cd /home/deploy/${instancia_add}/frontend
   npm install
 EOF
+  )
+  
+  exit_code=$?
+  
+  if [ $exit_code -eq 0 ]; then
+    printf "${GREEN} ✅ Dependencias instaladas correctamente.${GRAY_LIGHT}\n\n"
+  else
+    printf "${YELLOW} ⚠️  La instalación estándar falló. Intentando con --legacy-peer-deps...${GRAY_LIGHT}\n"
+    
+    output=$(sudo su - deploy <<EOF 2>&1
+    set -e
+    cd /home/deploy/${instancia_add}/frontend
+    npm install --legacy-peer-deps
+EOF
+    )
+    
+    exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+      printf "${GREEN} ✅ Dependencias instaladas con --legacy-peer-deps.${GRAY_LIGHT}\n\n"
+    else
+      printf "${RED} ❌ Error al instalar dependencias del frontend.${GRAY_LIGHT}\n"
+      printf "${RED} Mensaje de error:${GRAY_LIGHT}\n"
+      echo "$output" | sed 's/^/   /'
+      exit 1
+    fi
+  fi
 
   sleep 2
 }
@@ -29,7 +60,7 @@ EOF
 #######################################
 frontend_node_build() {
   print_banner
-  printf "${WHITE} 💻 Compilando o código do frontend...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Compilando el código del frontend...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -49,7 +80,7 @@ EOF
 #######################################
 frontend_update() {
   print_banner
-  printf "${WHITE} 💻 Atualizando o frontend...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Actualizando el frontend...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -59,7 +90,13 @@ frontend_update() {
   pm2 stop ${empresa_atualizar}-frontend
   git pull
   cd /home/deploy/${empresa_atualizar}/frontend
-  npm install
+  
+  # Intentar instalación estándar primero
+  if ! npm install; then
+    echo "Instalación estándar falló, intentando con --legacy-peer-deps..."
+    npm install --legacy-peer-deps || exit 1
+  fi
+  
   rm -rf build
   npm run build
   pm2 start ${empresa_atualizar}-frontend
@@ -77,7 +114,7 @@ EOF
 #######################################
 frontend_set_env() {
   print_banner
-  printf "${WHITE} 💻 Configurando variáveis de ambiente (frontend)...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Configurando variables de entorno (frontend)...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -121,7 +158,7 @@ EOF
 #######################################
 frontend_start_pm2() {
   print_banner
-  printf "${WHITE} 💻 Iniciando pm2 (frontend)...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Iniciando PM2 (frontend)...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -148,7 +185,7 @@ EOF
 #######################################
 frontend_nginx_setup() {
   print_banner
-  printf "${WHITE} 💻 Configurando nginx (frontend)...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Configurando Nginx (frontend)...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2

@@ -9,15 +9,66 @@
 #######################################
 system_create_user() {
   print_banner
-  printf "${WHITE} 💻 Agora, vamos criar o usuário para a instancia...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Ahora, vamos a crear el usuario para la instancia...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
 
-  sudo su - root <<EOF
-  useradd -m -p $(openssl passwd -crypt ${mysql_root_password}) -s /bin/bash -G sudo deploy
-  usermod -aG sudo deploy
+  # Generar hash de contraseña
+  password_hash=$(openssl passwd -crypt ${mysql_root_password})
+
+  # Verificar si el usuario ya existe
+  if id "deploy" &>/dev/null; then
+    printf "${YELLOW} ⚠️  El usuario 'deploy' ya existe. Verificando configuración...${GRAY_LIGHT}\n"
+    
+    # Verificar y asegurar que esté en el grupo sudo
+    output=$(sudo su - root <<EOF 2>&1
+    set -e
+    if ! groups deploy | grep -q sudo; then
+      usermod -aG sudo deploy
+      echo "Usuario añadido al grupo sudo"
+    else
+      echo "Usuario ya está en el grupo sudo"
+    fi
+    
+    # Asegurar que el usuario tenga shell bash
+    usermod -s /bin/bash deploy
+    
+    # Actualizar la contraseña
+    echo "deploy:${mysql_root_password}" | chpasswd
 EOF
+    )
+    
+    exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+      printf "${GREEN} ✅ Usuario 'deploy' configurado correctamente.${GRAY_LIGHT}\n\n"
+    else
+      printf "${RED} ❌ Error al configurar el usuario 'deploy'.${GRAY_LIGHT}\n"
+      echo "$output" | sed 's/^/   /'
+      exit 1
+    fi
+  else
+    # Crear el usuario si no existe
+    printf "${WHITE} 💻 Creando usuario 'deploy'...${GRAY_LIGHT}\n"
+    
+    output=$(sudo su - root <<EOF 2>&1
+    set -e
+    useradd -m -p ${password_hash} -s /bin/bash -G sudo deploy
+    echo "Usuario creado exitosamente"
+EOF
+    )
+    
+    exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+      printf "${GREEN} ✅ Usuario 'deploy' creado exitosamente.${GRAY_LIGHT}\n\n"
+    else
+      printf "${RED} ❌ Error al crear el usuario 'deploy'.${GRAY_LIGHT}\n"
+      echo "$output" | sed 's/^/   /'
+      exit 1
+    fi
+  fi
 
   sleep 2
 }
@@ -29,15 +80,55 @@ EOF
 #######################################
 system_git_clone() {
   print_banner
-  printf "${WHITE} 💻 Fazendo download do código Canal Vem Fazer...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Descargando el código...${GRAY_LIGHT}"
   printf "\n\n"
-
 
   sleep 2
 
-  sudo su - deploy <<EOF
+  # Verificar si el directorio ya existe
+  if sudo su - deploy -c "test -d /home/deploy/${instancia_add}"; then
+    printf "${RED} ⚠️  El directorio /home/deploy/${instancia_add} ya existe!${GRAY_LIGHT}\n"
+    printf "${WHITE} 💻 ¿Desea eliminar y clonar nuevamente? (s/n):${GRAY_LIGHT}"
+    read -p "> " respuesta
+    if [[ "$resposta" == "s" || "$resposta" == "S" ]]; then
+      sudo su - deploy <<EOF
+      rm -rf /home/deploy/${instancia_add}
+EOF
+    else
+      printf "${RED} ❌ Operación cancelada.${GRAY_LIGHT}\n"
+      exit 1
+    fi
+  fi
+
+  # Verificar si git está instalado
+  if ! command -v git &> /dev/null; then
+    printf "${RED} ❌ Git no está instalado!${GRAY_LIGHT}\n"
+    exit 1
+  fi
+
+  # Ejecutar git clone con manejo de errores
+  printf "${WHITE} 💻 Clonando repositorio...${GRAY_LIGHT}\n"
+  
+  # Capturar salida y código de error
+  output=$(sudo su - deploy <<EOF 2>&1
   git clone ${link_git} /home/deploy/${instancia_add}/
 EOF
+  )
+  exit_code=$?
+  
+  if [ $exit_code -eq 0 ]; then
+    printf "${GREEN} ✅ Repositorio clonado con éxito!${GRAY_LIGHT}\n\n"
+  else
+    printf "${RED} ❌ Error al clonar el repositorio!${GRAY_LIGHT}\n"
+    printf "${RED} Mensaje de error:${GRAY_LIGHT}\n"
+    echo "$output" | sed 's/^/   /'
+    printf "\n${YELLOW} 💡 Verifique que:${GRAY_LIGHT}\n"
+    printf "${YELLOW}    - El enlace del repositorio sea correcto${GRAY_LIGHT}\n"
+    printf "${YELLOW}    - Si el repositorio es privado, necesita usar token en la URL${GRAY_LIGHT}\n"
+    printf "${YELLOW}    - Formato correcto para privado: https://token@github.com/usuario/repo.git${GRAY_LIGHT}\n"
+    printf "${YELLOW}    - O use: https://usuario:token@github.com/usuario/repo.git${GRAY_LIGHT}\n"
+    exit 1
+  fi
 
   sleep 2
 }
@@ -49,7 +140,7 @@ EOF
 #######################################
 system_update() {
   print_banner
-  printf "${WHITE} 💻 Vamos atualizar o sistema Canal Vem Fazer...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Vamos a actualizar el sistema...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -71,7 +162,7 @@ EOF
 #######################################
 deletar_tudo() {
   print_banner
-  printf "${WHITE} 💻 Vamos deletar o Canal Vem Fazer...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Vamos a eliminar la instancia...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -102,7 +193,7 @@ EOF
   sleep 2
 
   print_banner
-  printf "${WHITE} 💻 Remoção da Instancia/Empresa ${empresa_delete} realizado com sucesso ...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Eliminación de la Instancia/Empresa ${empresa_delete} realizada con éxito...${GRAY_LIGHT}"
   printf "\n\n"
 
 
@@ -117,7 +208,7 @@ EOF
 #######################################
 configurar_bloqueio() {
   print_banner
-  printf "${WHITE} 💻 Vamos bloquear o Canal Vem Fazer...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Vamos a bloquear la instancia...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -130,7 +221,7 @@ EOF
   sleep 2
 
   print_banner
-  printf "${WHITE} 💻 Bloqueio da Instancia/Empresa ${empresa_bloquear} realizado com sucesso ...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Bloqueo de la Instancia/Empresa ${empresa_bloquear} realizado con éxito...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -144,7 +235,7 @@ EOF
 #######################################
 configurar_desbloqueio() {
   print_banner
-  printf "${WHITE} 💻 Vamos Desbloquear o Canal Vem Fazer...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Vamos a desbloquear la instancia...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -157,7 +248,7 @@ EOF
   sleep 2
 
   print_banner
-  printf "${WHITE} 💻 Desbloqueio da Instancia/Empresa ${empresa_desbloquear} realizado com sucesso ...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Desbloqueo de la Instancia/Empresa ${empresa_desbloquear} realizado con éxito...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -170,7 +261,7 @@ EOF
 #######################################
 configurar_dominio() {
   print_banner
-  printf "${WHITE} 💻 Vamos Alterar os Dominios do Canal Vem Fazer...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Vamos a modificar los dominios de la instancia...${GRAY_LIGHT}"
   printf "\n\n"
 
 sleep 2
@@ -262,7 +353,7 @@ EOF
   sleep 2
 
   print_banner
-  printf "${WHITE} 💻 Alteração de dominio da Instancia/Empresa ${empresa_dominio} realizado com sucesso ...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Modificación de dominio de la Instancia/Empresa ${empresa_dominio} realizada con éxito...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -275,22 +366,47 @@ EOF
 #######################################
 system_node_install() {
   print_banner
-  printf "${WHITE} 💻 Instalando nodejs...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando Node.js 20.19.5...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
 
   sudo su - root <<EOF
-  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-  apt-get install -y nodejs
-  sleep 2
+  # Instalar dependencias necesarias
+  apt-get update -y
+  apt-get install -y curl build-essential
+  
+  # Instalar nvm (Node Version Manager) para root
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+  
+  # Cargar nvm en la sesión actual
+  export NVM_DIR="/root/.nvm"
+  [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
+  
+  # Instalar Node.js 20.19.5 usando nvm
+  nvm install 20.19.5
+  nvm use 20.19.5
+  nvm alias default 20.19.5
+  
+  # Hacer que Node.js esté disponible globalmente para todos los usuarios
+  ln -sf /root/.nvm/versions/node/v20.19.5/bin/node /usr/local/bin/node
+  ln -sf /root/.nvm/versions/node/v20.19.5/bin/npm /usr/local/bin/npm
+  ln -sf /root/.nvm/versions/node/v20.19.5/bin/npx /usr/local/bin/npx
+  
+  # Actualizar npm a la última versión
   npm install -g npm@latest
+  
   sleep 2
-  sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-  sudo apt-get update -y && sudo apt-get -y install postgresql
+  
+  # Instalar PostgreSQL
+  sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt \$(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+  apt-get update -y && apt-get -y install postgresql
+  
   sleep 2
-  sudo timedatectl set-timezone America/Sao_Paulo
+  
+  # Configurar zona horaria
+  timedatectl set-timezone Europe/Madrid
   
 EOF
 
@@ -303,7 +419,7 @@ EOF
 #######################################
 system_docker_install() {
   print_banner
-  printf "${WHITE} 💻 Instalando docker...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando Docker...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -336,7 +452,7 @@ EOF
 #######################################
 system_puppeteer_dependencies() {
   print_banner
-  printf "${WHITE} 💻 Instalando puppeteer dependencies...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando dependencias de Puppeteer...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -397,7 +513,7 @@ EOF
 #######################################
 system_pm2_install() {
   print_banner
-  printf "${WHITE} 💻 Instalando pm2...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando PM2...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -417,7 +533,7 @@ EOF
 #######################################
 system_snapd_install() {
   print_banner
-  printf "${WHITE} 💻 Instalando snapd...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando Snapd...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -438,7 +554,7 @@ EOF
 #######################################
 system_certbot_install() {
   print_banner
-  printf "${WHITE} 💻 Instalando certbot...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando Certbot...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -459,7 +575,7 @@ EOF
 #######################################
 system_nginx_install() {
   print_banner
-  printf "${WHITE} 💻 Instalando nginx...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Instalando Nginx...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -479,7 +595,7 @@ EOF
 #######################################
 system_nginx_restart() {
   print_banner
-  printf "${WHITE} 💻 reiniciando nginx...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Reiniciando Nginx...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -498,7 +614,7 @@ EOF
 #######################################
 system_nginx_conf() {
   print_banner
-  printf "${WHITE} 💻 configurando nginx...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Configurando Nginx...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
@@ -521,7 +637,7 @@ EOF
 #######################################
 system_certbot_setup() {
   print_banner
-  printf "${WHITE} 💻 Configurando certbot...${GRAY_LIGHT}"
+  printf "${WHITE} 💻 Configurando Certbot...${GRAY_LIGHT}"
   printf "\n\n"
 
   sleep 2
