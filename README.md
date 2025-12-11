@@ -24,8 +24,8 @@ cd && cd ./install && sudo ./add-instance.sh
 
 Un VPS Ubuntu 20.04 (Configuración recomendada: 3 VCPU's + 4 GB de RAM)
 
-Subdominio para Frontend : Frontend
+Subdominio para Frontend : app.dominio.com
 
-Subdominio para API: Backend
+Subdominio para API: api.dominio.com
 
 Correo electrónico válido para la certificación SSL
